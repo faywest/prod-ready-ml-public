@@ -18,6 +18,7 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with some column features added
     """
     df = df.copy()
+
     df["is_dog"] = _check_is_dog(df["animal_type"])
     df["has_name"] = _check_has_name(df["name"])
     df["sex"] = _get_sex(df["sex_upon_outcome"])
