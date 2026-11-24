@@ -1,7 +1,11 @@
 """Feature engineering for the animal shelter data."""
 
+import logging
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger("animal_shelter")
 
 
 def add_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -18,6 +22,7 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
         DataFrame with some column features added
     """
     df = df.copy()
+    logger.info("Copy made of data for feature engineering")
 
     df["is_dog"] = _check_is_dog(df["animal_type"])
     df["has_name"] = _check_has_name(df["name"])
@@ -25,6 +30,8 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     df["neutered"] = _get_neutered(df["sex_upon_outcome"])
     df["hairtype"] = _get_hair_type(df["breed"])
     df["days_upon_outcome"] = _compute_days_upon_outcome(df["age_upon_outcome"])
+    logger.info("Features added to the data")
+    logger.debug(f"Columns after feature engineering: {list(df.columns)}")
 
     return df
 
