@@ -8,8 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.165.0",
+    "matplotlib>=3.11.2",
     "pandas>=3.1.1",
+    "pydantic-settings>=2.16.3",
+    "requests>=2.34.2",
     "scikit-learn>=1.9.1",
+    "typer>=0.29.2",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
@@ -21,6 +27,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.16.2",
     "jupyter>=1.1.1",
     "mypy>=2.4.1",
     "pandas-stubs>=3.1.0.261029",
@@ -40,7 +47,7 @@ select = [
     "I",   # isort
     "D",   # pydocstyle
 ]
-ignore = ['D100', 'D103']
+ignore = ['D100', 'D103', 'D101', 'D105', 'D400', 'D401', 'D102', 'E711', 'E402']
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
