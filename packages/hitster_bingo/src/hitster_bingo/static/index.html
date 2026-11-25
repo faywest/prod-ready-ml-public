@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disco Bingo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ---------- Colours: one place to change the whole look ---------- */
+    :root {
+      --bg: #06141A;
+      --card: #0B1E26;
+      --text: #C9D3D8;
+      --white: #FFFFFF;
+      --pink: #E8307F;
+      --slot-0: #7CFC8A; /* green  */
+      --slot-1: #FF4FD8; /* pink   */
+      --slot-2: #FFE45C; /* yellow */
+      --slot-3: #B57CFF; /* purple */
+      --slot-4: #4FC3FF; /* blue   */
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Nunito", sans-serif;
+      text-align: center;
+    }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .hidden { display: none !important; }
+
+    /* Neon glow = several shadows in the same colour on top of each other */
+    .neon {
+      color: var(--c, var(--pink));
+      text-shadow: 0 0 6px var(--c, var(--pink)), 0 0 18px var(--c, var(--pink));
+    }
+    h1 { font-size: 3.5rem; font-weight: 800; margin: 8px 0 0; letter-spacing: 4px; }
+    h2 { color: var(--white); font-weight: 800; margin: 24px 0 8px; }
+
+    /* ---------- Buttons and inputs ---------- */
+    button, select, input[type=text], input[type=number] {
+      font: inherit; font-weight: 800;
+      background: transparent;
+      color: var(--white);
+      border: 2px solid var(--pink);
+      border-radius: 999px;
+      padding: 10px 22px;
+      margin: 4px;
+    }
+    button { cursor: pointer; box-shadow: 0 0 8px var(--pink); transition: background .2s; }
+    input[type=text], input[type=number] { border-color: var(--slot-3); text-align: center; }
+    input[type=number] { width: 90px; }
+    select option { background: var(--card); }
+    button:hover:not(:disabled) { background: var(--pink); }
+    button:disabled { opacity: .3; cursor: default; box-shadow: none; }
+    button.good { border-color: var(--slot-0); box-shadow: 0 0 8px var(--slot-0); }
+    button.good:hover { background: var(--slot-0); color: var(--bg); }
+
+    .bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; margin: 16px 0; }
+    #status { min-height: 1.5em; }
+    .panel { background: var(--card); border-radius: 16px; padding: 20px; margin: 16px auto; max-width: 640px; }
+
+    /* ---------- Setup ---------- */
+    #names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+
+    /* ---------- Scoreboard ---------- */
+    #scoreboard { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 16px 0; }
+    .score {
+      background: var(--card); border-radius: 12px; padding: 8px 16px;
+      border: 2px solid transparent; min-width: 110px;
+    }
+    .score b { color: var(--white); display: block; font-size: 1.1rem; }
+    .score.turn { border-color: var(--pink); box-shadow: 0 0 14px var(--pink); }
+    .score.bingo b { color: var(--slot-2); }
+    #turnText { color: var(--white); font-size: 1.4rem; font-weight: 800; }
+
+    /* ---------- Disco ball ---------- */
+    .ball-wrap { position: relative; width: 260px; height: 260px; margin: 28px auto 16px; }
+    .pointer {               /* little triangle at the top that shows the result */
+      position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+      border: 14px solid transparent; border-top: 22px solid var(--white);
+      filter: drop-shadow(0 0 6px var(--white)); z-index: 2;
+    }
+    #ball {
+      width: 100%; height: 100%; border-radius: 50%;
+      /* 5 slices of 72 degrees each, starting at the top, going clockwise */
+      background:
+        radial-gradient(circle, rgba(255,255,255,.35) 0 2px, transparent 3px) 0 0 / 18px 18px,
+        conic-gradient(var(--slot-0) 0 72deg, var(--slot-1) 72deg 144deg,
+          var(--slot-2) 144deg 216deg, var(--slot-3) 216deg 288deg, var(--slot-4) 288deg 360deg);
+      box-shadow: 0 0 30px rgba(232,48,127,.6), 0 0 80px rgba(181,124,255,.35);
+      transition: transform 4s cubic-bezier(.17,.67,.21,1); /* fast start, slow stop */
+    }
+    #ball.spinning { animation: pulse .5s ease-in-out infinite alternate; }
+    @keyframes pulse {
+      to { box-shadow: 0 0 50px rgba(232,48,127,.9), 0 0 120px rgba(79,195,255,.6); }
+    }
+
+    /* ---------- Timer and answer ---------- */
+    #timer { font-size: 4.5rem; font-weight: 800; color: var(--white); margin: 4px 0; min-height: 1.2em; }
+    #timer.waiting { font-size: 1.4rem; color: var(--text); }
+    #timer.hurry { color: var(--pink); text-shadow: 0 0 10px var(--pink), 0 0 30px var(--pink); }
+    input[type=range] { accent-color: var(--pink); }
+    #answer { border: 2px solid var(--slot-3); box-shadow: 0 0 18px var(--slot-3); max-width: 480px; }
+    #answer .year { font-size: 3rem; font-weight: 800; --c: var(--slot-3); }
+    #answer .title { color: var(--white); font-size: 1.4rem; font-weight: 800; }
+
+    /* ---------- Bingo card ---------- */
+    .bingo-card {
+      display: grid; grid-template-columns: repeat(5, 64px); gap: 8px;
+      justify-content: center; margin: 16px auto;
+    }
+    .cell {
+      width: 64px; height: 64px; border-radius: 10px;
+      display: grid; place-items: center;
+      font-weight: 800; font-size: 1rem;
+      color: var(--c); background: var(--bg);
+      border: 2px solid var(--c);
+      opacity: .35; position: relative;
+    }
+    .cell.match { opacity: 1; box-shadow: 0 0 12px var(--c); }
+    .cell.pick { cursor: pointer; animation: blink .8s ease-in-out infinite alternate; }
+    .cell.pick:hover { background: var(--c); color: var(--bg); }
+    @keyframes blink { to { box-shadow: 0 0 24px var(--c); } }
+    .cell.crossed { opacity: 1; background: var(--c); color: var(--bg); }
+    .cell.crossed::after {
+      content: "✖"; position: absolute; font-size: 2.4rem; color: var(--white);
+      text-shadow: 0 0 6px var(--bg);
+    }
+
+    /* ---------- Category tiles ---------- */
+    .tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; text-align: left; }
+    .tile {
+      background: var(--card); border-radius: 12px; padding: 16px;
+      border: 2px solid transparent; transition: all .3s; opacity: .55;
+    }
+    .tile .icon {
+      width: 56px; height: 56px; border-radius: 8px; background: var(--bg);
+      display: grid; place-items: center; font-size: 1.3rem; font-weight: 800;
+    }
+    .tile h3 { color: var(--white); font-size: 1rem; margin: 12px 0 6px; }
+    .tile p { font-size: .85rem; margin: 0; }
+    .tile.active { opacity: 1; border-color: var(--c); box-shadow: 0 0 18px var(--c); transform: scale(1.04); }
+
+    /* ---------- Winner overlay ---------- */
+    #winnerScreen {
+      position: fixed; inset: 0; background: rgba(6,20,26,.94);
+      display: grid; place-items: center; z-index: 10;
+    }
+    #winnerScreen .big { font-size: 7rem; font-weight: 800; letter-spacing: 8px; animation: glow 1s infinite alternate; }
+    @keyframes glow { to { text-shadow: 0 0 20px var(--pink), 0 0 60px var(--pink), 0 0 100px var(--slot-3); } }
+    #winnerName { color: var(--white); font-size: 2.2rem; font-weight: 800; }
+
+    @media (max-width: 800px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+<main>
+  <h1 class="neon">DISCO BINGO</h1>
+  <div class="bar">
+    <button id="loginBtn" onclick="location.href='/login'">🎧 Log in met Spotify</button>
+    <button id="toSetupBtn" class="hidden">＋ Nieuw spel</button>
+  </div>
+  <div id="status"></div>
+
+  <!-- ===== Screen 1: setup ===== -->
+  <section id="setup" class="panel hidden">
+    <h2>Nieuw spel</h2>
+    <div class="bar">
+      <select id="side">
+        <option value="A">Kant A: Beginners</option>
+        <option value="B">Kant B: Experts</option>
+      </select>
+      <label>Spelers <input id="playerCount" type="number" min="1" max="10" value="2"></label>
+    </div>
+    <div class="bar">
+      <label for="seconds">Tijd per ronde: <b id="secondsLabel">30</b> sec</label>
+      <input id="seconds" type="range" min="30" max="60" step="5" value="30">
+    </div>
+    <div class="bar">
+      <label for="delay">Timer start na: <b id="delayLabel">5</b> sec muziek</label>
+      <input id="delay" type="range" min="0" max="20" step="1" value="5">
+    </div>
+    <div id="names"></div>
+    <button id="startBtn">🪩 Start spel</button>
+  </section>
+
+  <!-- ===== Screen 2: the game ===== -->
+  <section id="gameScreen" class="hidden">
+    <div id="scoreboard"></div>
+    <div id="turnText"></div>
+
+    <div class="ball-wrap">
+      <div class="pointer"></div>
+      <div id="ball"></div>
+    </div>
+    <div class="bar">
+      <button id="spinBtn">🪩 Draai de discobal</button>
+      <button id="drawBtn">▶ Trek een kaart</button>
+      <button id="stopBtn">⏸ Muziek stop</button>
+    </div>
+    <div id="timer"></div>
+
+    <button id="revealBtn">🔄 Draai de kaart om</button>
+    <div id="answer" class="panel hidden">
+      <div class="year neon"></div>
+      <div class="title"></div>
+      <div class="artist"></div>
+    </div>
+
+    <!-- After the reveal: go past every player -->
+    <div id="judge" class="panel hidden">
+      <h2 id="judgeTitle"></h2>
+      <div id="judgeButtons" class="bar">
+        <button id="goodBtn" class="good">✅ Goed</button>
+        <button id="wrongBtn">❌ Fout</button>
+      </div>
+      <div id="judgeCard"></div>
+      <button id="nextTurnBtn" class="hidden">Volgende beurt ▶</button>
+    </div>
+
+    <h2 id="tilesTitle"></h2>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <!-- ===== Screen 3: winner ===== -->
+  <div id="winnerScreen" class="hidden">
+    <div>
+      <div class="big neon">BINGO!</div>
+      <div id="winnerName"></div>
+      <button id="winnerNewGameBtn">＋ Nieuw spel</button>
+    </div>
+  </div>
+</main>
+
+<script>
+// ---------- Small helpers ----------
+const $ = (id) => document.getElementById(id);
+const say = (text) => ($("status").textContent = text);
+const show = (id, visible) => $(id).classList.toggle("hidden", !visible);
+// Names are typed by players: escape them so "<b>" shows as text, not as HTML.
+const esc = (text) => String(text).replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+// Call our own FastAPI backend. Throws an error with the API's message if it fails.
+async function api(method, url, body) {
+  const options = { method };
+  if (body !== undefined) {
+    options.headers = { "Content-Type": "application/json" };
+    options.body = JSON.stringify(body);
+  }
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok) {
+    const detail = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+    throw new Error(detail);
+  }
+  return data;
+}
+
+// ---------- Category texts (same as models.py), per side and slot ----------
+const CATEGORIES = {
+  A: [
+    ["🎤", "Groep of soloartiest", "Schrijf 'groep' of 'solo'. Een duet telt als groep."],
+    ["20/00", "Vóór 2000?", "Schrijf 'ja' of 'nee'."],
+    ["±4", "4 jaar ervoor of erna", "Max. 4 jaar ernaast = punt. Exact goed? Haal een kruisje weg bij een tegenstander."],
+    ["'80s", "Decennium", "Schrijf het decennium, bijv. de jaren '80."],
+    ["±2", "2 jaar ervoor of erna", "Max. 2 jaar ernaast = punt. Exact goed? Haal een kruisje weg bij een tegenstander."],
+  ],
+  B: [
+    ["♫", "Songtitel", "Schrijf de titel. Bijna goed? De andere spelers beslissen samen."],
+    ["◎", "Exacte jaar", "Schrijf het jaar. Alleen exact telt."],
+    ["🎙", "Naam van groep of zanger(es)", "Schrijf de artiest. Bij een samenwerking is de hoofdartiest genoeg."],
+    ["'80s", "Decennium", "Schrijf het decennium, bijv. de jaren '80."],
+    ["±3", "3 jaar ervoor of erna", "Max. 3 jaar ernaast = punt."],
+  ],
+};
+
+// ======================================================================
+// The page keeps almost nothing itself: after every action we ask the
+// server for the GameState and redraw everything with render(state).
+// ======================================================================
+let state = null;
+let judgeIndex = 0;     // which player we're asking "goed of fout?" right now
+let spinning = false;
+
+async function refresh() {
+  try {
+    state = await api("GET", "/state");
+  } catch {
+    state = null;       // no game yet
+  }
+  render();
+}
+
+function render() {
+  show("setup", state === null);
+  show("gameScreen", state !== null);
+  show("toSetupBtn", state !== null);
+  show("winnerScreen", state !== null && state.winner !== null);
+  if (state === null) return;
+
+  const player = state.players[state.turn];
+  renderScoreboard();
+  renderTiles();
+  $("turnText").innerHTML = `🎤 <span class="neon">${esc(player.name)}</span> is aan de beurt`;
+  $("winnerName").textContent = state.winner ? `${state.winner} heeft gewonnen!` : "";
+
+  // Which buttons make sense right now? Same order as a round in game.py.
+  const over = state.winner !== null;
+  $("spinBtn").disabled = spinning || over || state.category !== null;
+  $("drawBtn").disabled = spinning || over || state.category === null || state.card_drawn;
+  $("revealBtn").disabled = !state.card_drawn || state.revealed;
+  $("stopBtn").disabled = !state.card_drawn;
+
+  show("judge", state.revealed && !over);
+  if (state.revealed) renderJudge();
+  if (state.category === null) show("answer", false);
+}
+
+function renderScoreboard() {
+  $("scoreboard").innerHTML = state.players.map((p, i) => `
+    <div class="score ${i === state.turn ? "turn" : ""} ${p.crosses_to_bingo === 0 ? "bingo" : ""}">
+      <b>${esc(p.name)}</b>
+      ${p.crossed.length} ${p.crossed.length === 1 ? "kruisje" : "kruisjes"} · ${p.crosses_to_bingo === 0 ? "BINGO!" : `nog ${p.crosses_to_bingo} tot bingo`}
+    </div>`).join("");
+}
+
+function renderTiles() {
+  $("tilesTitle").textContent = state.side === "A" ? "Kant A: Beginners" : "Kant B: Experts";
+  $("tiles").innerHTML = CATEGORIES[state.side].map(([symbol, name, text], slot) => `
+    <div class="tile ${state.category && state.category.slot === slot && !spinning ? "active" : ""}"
+         style="--c: var(--slot-${slot})">
+      <div class="icon neon">${symbol}</div>
+      <h3>${name}</h3>
+      <p>${text}</p>
+    </div>`).join("");
+}
+
+// A 5x5 card. If `pickSlot` is given, free squares of that colour can be clicked.
+function cardHtml(player, pickSlot) {
+  const crossed = new Set(player.crossed.map(([r, c]) => `${r},${c}`));
+  let html = '<div class="bingo-card">';
+  player.grid.forEach((row, r) => row.forEach((slot, c) => {
+    const isCrossed = crossed.has(`${r},${c}`);
+    const match = slot === pickSlot;
+    const pick = match && !isCrossed;
+    html += `<div class="cell ${isCrossed ? "crossed" : ""} ${match ? "match" : ""} ${pick ? "pick" : ""}"
+                  style="--c: var(--slot-${slot})" ${pick ? `data-row="${r}" data-col="${c}"` : ""}>
+               ${CATEGORIES[state.side][slot][0]}</div>`;
+  }));
+  return html + "</div>";
+}
+
+// ---------- After the reveal: ask every player "goed of fout?" ----------
+let judgeChoseGood = false;
+
+function renderJudge() {
+  // skip players that already crossed this round (e.g. after a page reload)
+  while (judgeIndex < state.players.length && state.crossed_this_round.includes(judgeIndex)) {
+    judgeIndex++;
+  }
+  const done = judgeIndex >= state.players.length;
+  show("judgeButtons", !done && !judgeChoseGood);
+  show("nextTurnBtn", done);
+  if (done) {
+    $("judgeTitle").textContent = "Iedereen gehad!";
+    $("judgeCard").innerHTML = "";
+    return;
+  }
+  const player = state.players[judgeIndex];
+  const slot = state.category.slot;
+  if (!judgeChoseGood) {
+    $("judgeTitle").innerHTML = `<span class="neon">${esc(player.name)}</span>: goed of fout?`;
+    $("judgeCard").innerHTML = "";
+    return;
+  }
+  const free = player.crossed.length < 25 &&
+    player.grid.flat().some((s, i) => s === slot &&
+      !player.crossed.some(([r, c]) => r * 5 + c === i));
+  if (!free) {
+    $("judgeTitle").textContent = `${player.name} heeft geen vrij vakje meer in deze kleur 😅`;
+    $("judgeCard").innerHTML = cardHtml(player, slot) + '<button onclick="nextJudge()">Verder</button>';
+    return;
+  }
+  $("judgeTitle").innerHTML = `<span class="neon">${esc(player.name)}</span>: kies een vakje om af te kruisen`;
+  $("judgeCard").innerHTML = cardHtml(player, slot);
+  $("judgeCard").querySelectorAll(".pick").forEach((cell) => {
+    cell.onclick = () => crossCell(Number(cell.dataset.row), Number(cell.dataset.col));
+  });
+}
+
+function nextJudge() {
+  judgeIndex++;
+  judgeChoseGood = false;
+  render();
+}
+
+$("goodBtn").onclick = () => { judgeChoseGood = true; render(); };
+$("wrongBtn").onclick = nextJudge;
+
+async function crossCell(row, col) {
+  try {
+    state = await api("POST", "/cross", { player: judgeIndex, row, col });
+    nextJudge();
+  } catch (err) { say(err.message); }
+}
+
+$("nextTurnBtn").onclick = async () => {
+  try {
+    if (player) player.pause();
+    state = await api("POST", "/next-turn");
+    stopTimer();
+    judgeIndex = 0;
+    judgeChoseGood = false;
+    if (state.winner === null && state.bingo.length > 1) {
+      say(`Gelijkspel tussen ${state.bingo.join(" en ")}! Speel door tot iemand een kruisje meer heeft.`);
+    } else if (state.winner === null) {
+      say(`${state.players[state.turn].name}, draai de discobal!`);
+    }
+    render();
+  } catch (err) { say(err.message); }
+};
+
+// ---------- Setup screen ----------
+function renderNameFields() {
+  const count = Math.max(1, Math.min(10, Number($("playerCount").value) || 1));
+  const old = [...document.querySelectorAll("#names input")].map((i) => i.value);
+  $("names").innerHTML = Array.from({ length: count }, (_, i) =>
+    `<input type="text" placeholder="Speler ${i + 1}" value="${esc(old[i] || "")}">`).join("");
+}
+$("playerCount").oninput = renderNameFields;
+renderNameFields();
+
+$("startBtn").onclick = async () => {
+  const players = [...document.querySelectorAll("#names input")]
+    .map((input, i) => input.value.trim() || `Speler ${i + 1}`);
+  try {
+    const timer_seconds = Number($("seconds").value);
+    const timer_delay = Number($("delay").value);
+    state = await api("POST", "/game", {
+      side: $("side").value, players, timer_seconds, timer_delay,
+    });
+    judgeIndex = 0;
+    judgeChoseGood = false;
+    say(`${players[0]} begint. Draai de discobal!`);
+    render();
+  } catch (err) { say(err.message); }
+};
+
+function backToSetup() {
+  if (state && state.winner === null && !confirm("Het huidige spel stoppen?")) return;
+  state = null;
+  render();
+}
+$("toSetupBtn").onclick = backToSetup;
+$("winnerNewGameBtn").onclick = () => { state = null; render(); };
+
+// ---------- Spotify player in this browser tab ----------
+let player = null;
+let deviceId = null;
+
+async function getToken() {
+  return (await api("GET", "/token")).access_token;
+}
+
+// The Spotify SDK script (loaded at the bottom) calls this when it's ready.
+window.onSpotifyWebPlaybackSDKReady = async () => {
+  try {
+    await getToken(); // are we logged in?
+  } catch {
+    say("Log eerst in met Spotify (Premium) om muziek af te spelen.");
+    return;
+  }
+  $("loginBtn").textContent = "✅ Spotify verbonden";
+  player = new Spotify.Player({
+    name: "Disco Bingo",
+    getOAuthToken: (callback) => getToken().then(callback),
+    volume: 0.8,
+  });
+  player.addListener("ready", ({ device_id }) => { deviceId = device_id; });
+  player.addListener("initialization_error", ({ message }) => say("Spotify: " + message));
+  player.addListener("authentication_error", ({ message }) => say("Spotify login: " + message));
+  player.addListener("account_error", () => say("Spotify Premium is nodig om af te spelen."));
+  // Hide the song from the OS media controls (e.g. the macOS menu bar).
+  player.addListener("player_state_changed", hideNowPlaying);
+  player.connect();
+};
+
+function hideNowPlaying() {
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: "🎵 Raad maar!", artist: "Disco Bingo" });
+  }
+}
+
+async function playSong(uri) {
+  if (!deviceId) throw new Error("Spotify speler is nog niet klaar. Ben je ingelogd?");
+  await player.activateElement(); // browsers only allow sound after a click
+  const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${await getToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ uris: [uri] }),
+  });
+  if (!response.ok) throw new Error("Spotify kon het nummer niet afspelen.");
+  hideNowPlaying();
+}
+
+// ---------- Round buttons ----------
+let rotation = 0; // total rotation of the ball, keeps growing so it always spins forward
+
+$("spinBtn").onclick = async () => {
+  try {
+    const category = await api("POST", "/spin");
+    // Slice `slot` sits between slot*72 and slot*72+72 degrees. To put its middle
+    // under the pointer at the top, turn the ball back by that many degrees,
+    // plus 5 full rounds for the show.
+    const target = (360 - (category.slot * 72 + 36)) % 360;
+    rotation += 5 * 360 + ((target - (rotation % 360)) + 360) % 360;
+    spinning = true;
+    await refresh();
+    $("ball").classList.add("spinning");
+    $("ball").style.transform = `rotate(${rotation}deg)`;
+    say("De discobal draait...");
+    setTimeout(async () => {     // wait for the 4 second CSS animation
+      spinning = false;
+      $("ball").classList.remove("spinning");
+      say(`Categorie: ${category.name}`);
+      await refresh();
+    }, 4000);
+  } catch (err) { say(err.message); }
+};
+
+$("drawBtn").onclick = async () => {
+  try {
+    const card = await api("POST", "/draw");   // only the uri, no answer!
+    await refresh();
+    await playSong(card.uri);
+    say(`Luister goed... (nog ${card.cards_left} kaarten)`);
+    startTimer(state.timer_seconds, state.timer_delay);
+  } catch (err) { say(err.message); }
+};
+
+$("stopBtn").onclick = () => player && player.pause();
+
+// ---------- Timer ----------
+// After the song starts: wait `delay` seconds, then count down. At 0 the music stops.
+let timerId = null;
+$("seconds").oninput = () => ($("secondsLabel").textContent = $("seconds").value);
+$("delay").oninput = () => ($("delayLabel").textContent = $("delay").value);
+
+function showTimer(text, style = "") {
+  $("timer").textContent = text;
+  $("timer").className = style;
+}
+
+function startTimer(seconds, delay) {
+  stopTimer();
+  let wait = delay;
+  let left = seconds;
+  const tick = () => {
+    if (wait > 0) {                       // phase 1: "Timer start over 5..."
+      showTimer(`Timer start over ${wait}…`, "waiting");
+      wait -= 1;
+    } else if (left > 0) {                // phase 2: the real countdown
+      showTimer(left, left <= 5 ? "hurry" : "");
+      left -= 1;
+    } else {                              // phase 3: time's up
+      showTimer("STOP!", "hurry");
+      if (player) player.pause();
+      clearInterval(timerId);
+    }
+  };
+  tick();
+  timerId = setInterval(tick, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerId);
+  showTimer("");
+}
+
+// ---------- Reveal ----------
+async function showAnswer() {
+  const song = await api("POST", "/reveal");
+  $("answer").querySelector(".year").textContent = song.year;
+  $("answer").querySelector(".title").textContent = song.title;
+  $("answer").querySelector(".artist").textContent = song.artist;
+  show("answer", true);
+}
+
+$("revealBtn").onclick = async () => {
+  try {
+    stopTimer();
+    await showAnswer();
+    judgeIndex = 0;
+    judgeChoseGood = false;
+    say("Wie had het goed? Kruis een vakje af in de kleur van deze ronde.");
+    await refresh();
+  } catch (err) { say(err.message); }
+};
+
+// ---------- On page load: continue a saved game, if there is one ----------
+(async () => {
+  await refresh();
+  if (state && state.revealed) await showAnswer();   // reload during judging
+  if (state && state.category) {
+    rotation = (360 - (state.category.slot * 72 + 36)) % 360;
+    $("ball").style.transition = "none";            // jump, don't animate
+    $("ball").style.transform = `rotate(${rotation}deg)`;
+    void $("ball").offsetWidth;                     // make the browser apply it now
+    $("ball").style.transition = "";
+  }
+})();
+</script>
+<!-- Spotify's player library; it calls onSpotifyWebPlaybackSDKReady when loaded -->
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+</body>
+</html>
