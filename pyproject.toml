@@ -16,6 +16,7 @@ dependencies = [
     "scikit-learn>=1.9.1",
     "typer>=0.29.2",
     "uvicorn>=0.54.0",
+    "cli",
 ]
 
 [project.scripts]
@@ -47,7 +48,15 @@ select = [
     "I",   # isort
     "D",   # pydocstyle
 ]
-ignore = ['D100', 'D103', 'D101', 'D105', 'D400', 'D401', 'D102', 'E711', 'E402']
+ignore = ['D100', 'D103', 'D101', 'D105', 'D400', 'D401', 'D102', 'E711', 'E402', 'F811', 'D104']
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.uv.workspace]
+members = [
+    "packages/cli",
+]
+
+[tool.uv.sources]
+cli = { workspace = true }

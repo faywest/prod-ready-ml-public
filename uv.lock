@@ -13,11 +13,18 @@ resolution-markers = [
     "python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+members = [
+    "animal-shelter",
+    "cli",
+]
+
 [[package]]
 name = "animal-shelter"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cli" },
     { name = "fastapi" },
     { name = "matplotlib" },
     { name = "pandas" },
@@ -41,6 +48,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cli", editable = "packages/cli" },
     { name = "fastapi", specifier = ">=0.165.0" },
     { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "pandas", specifier = ">=3.1.1" },
@@ -533,6 +541,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d5/a3/4a6047c40414f170ad09a6d44c1a0663914924619304817c2e33d19fae75/charset_normalizer-3.5.3-cp37-abi3-win_arm64.whl", hash = "sha256:e4f85c34f9be32ec5568a0668fb8bc029d3e729285fb8fccc38695e185379a9b", size = 290628, upload-time = "2026-11-23T02:46:29.06Z" },
     { url = "https://files.pythonhosted.org/packages/d2/0d/07ab8eb9b7015274353eac2add4067bde1ab1b51912bbae505392905eedd/charset_normalizer-3.5.3-py3-none-any.whl", hash = "sha256:96e268b0cbda016ac519513294fcd17032264085b600abaac58b93049477e132", size = 68878, upload-time = "2026-11-23T02:46:50.665Z" },
 ]
+
+[[package]]
+name = "cli"
+version = "0.1.0"
+source = { editable = "packages/cli" }
+dependencies = [
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "typer", specifier = ">=0.29.2" }]
 
 [[package]]
 name = "click"
