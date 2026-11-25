@@ -20,3 +20,6 @@ output/**
 .DS_Store
 .idea/
 .vscode/
+
+# Hitster Bingo saved game
+packages/hitster_bingo/data/savegame.json
